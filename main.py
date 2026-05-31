@@ -164,31 +164,35 @@ mqtt_client.on_message    = on_message
 mqtt_client.on_disconnect = on_disconnect
 
 # =============================================
-# Lifespan
+# Lifespan — cria pasta E monta static aqui!
 # =============================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global event_loop
     event_loop = asyncio.get_running_loop()
 
-    # Cria pasta de fotos se não existir
+    # 1. Cria pasta de fotos se não existir
     os.makedirs("static/fotos", exist_ok=True)
 
-    # Cria tabelas do banco
+    # 2. Monta arquivos estáticos APÓS garantir que a pasta existe
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+
+    # 3. Cria tabelas do banco
     Base.metadata.create_all(bind=engine)
 
+    # 4. Conecta MQTT
     print("Iniciando conexão MQTT...")
     mqtt_client.connect(BROKER, PORT, 60)
     mqtt_client.loop_start()
+
     yield
+
     print("Encerrando conexão MQTT...")
     mqtt_client.loop_stop()
     mqtt_client.disconnect()
 
+# ── Cria o app ────────────────────────────
 app = FastAPI(lifespan=lifespan)
-
-# ── Serve fotos estáticas ─────────────────
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # =============================================
 # CORS Middleware
@@ -323,7 +327,6 @@ def get_motor_status():
 def listar_plantas(db: Session = Depends(get_db)):
     return db.query(PlantaDB).all()
 
-
 @app.post(
     "/plantas",
     response_model=PlantaResponse,
@@ -338,7 +341,6 @@ async def criar_planta(
     db:           Session    = Depends(get_db)
 ):
     foto_url = None
-
     if foto and foto.filename:
         extensao = foto.filename.split(".")[-1].lower()
         if extensao not in ["jpg", "jpeg", "png", "webp"]:
@@ -364,7 +366,6 @@ async def criar_planta(
     print(f"🌱 Planta cadastrada: {nome} ({tipo})")
     return planta
 
-
 @app.delete(
     "/plantas/{planta_id}",
     summary="Remove uma planta"
@@ -387,7 +388,6 @@ def deletar_planta(planta_id: int, db: Session = Depends(get_db)):
         "sucesso":  True,
         "mensagem": f"Planta '{planta.nome}' removida com sucesso"
     }
-
 
 @app.get(
     "/plantas/{planta_id}",
