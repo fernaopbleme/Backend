@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+antenv/
+
+# Banco local — no Azure o caminho vem de DATABASE_URL
+*.db
+*.sqlite3
+
+# Fotos enviadas em desenvolvimento (a pasta fica, o conteúdo não)
+static/fotos/*
+!static/fotos/.gitkeep
+
+# Editores
+.vscode/
+.idea/
+
+# Ambiente
+.env
