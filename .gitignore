@@ -20,3 +20,6 @@ static/fotos/*
 
 # Ambiente
 .env
+
+# Variaveis locais (credenciais) — o .env.example fica, o .env nao
+.env

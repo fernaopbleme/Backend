@@ -1,10 +1,22 @@
 import os
 
+from dotenv import load_dotenv
+
+# Le o .env da raiz quando ele existe, para o desenvolvimento local nao
+# depender de exportar variavel na mao. Em producao (Render) o arquivo nao
+# existe e as variaveis ja vem do ambiente — load_dotenv nao sobrescreve.
+load_dotenv()
+
 # ── MQTT ──────────────────────────────────
 BROKER    = os.getenv("MQTT_BROKER", "47d5de0ce14d4654a95021e273720719.s1.eu.hivemq.cloud")
 PORT      = int(os.getenv("MQTT_PORT", "8883"))
-MQTT_USER = os.getenv("MQTT_USER", "Hidro")
-MQTT_PASS = os.getenv("MQTT_PASS", "Hidro123")
+
+# Sem valor embutido de proposito: credencial com default no codigo vai
+# parar no git, e foi o que aconteceu — a senha antiga esta no historico
+# publico deste repositorio desde maio e precisa ser trocada no HiveMQ.
+# Copie .env.example para .env e preencha.
+MQTT_USER = os.getenv("MQTT_USER", "")
+MQTT_PASS = os.getenv("MQTT_PASS", "")
 
 # ── Tópicos ───────────────────────────────
 TOPIC_SENSORES      = os.getenv("MQTT_TOPIC_SENSORES", "hidroponia/sensores")
@@ -12,7 +24,15 @@ TOPIC_MOTOR_COMANDO = os.getenv("MQTT_TOPIC_MOTOR_COMANDO", "hidroponia/motor/co
 TOPIC_MOTOR_STATUS  = os.getenv("MQTT_TOPIC_MOTOR_STATUS", "hidroponia/motor/status")
 
 # ── Banco de dados ────────────────────────
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./plantas.db")
+_url = os.getenv("DATABASE_URL", "sqlite:///./plantas.db")
+
+# O Render (e o Heroku) entregam a URL do Postgres comecando com
+# "postgres://", esquema que o SQLAlchemy 2.x nao reconhece mais. Sem esta
+# troca a aplicacao nem sobe, com um erro que nao diz o que fazer.
+if _url.startswith("postgres://"):
+    _url = _url.replace("postgres://", "postgresql://", 1)
+
+DATABASE_URL = _url
 
 # ── Fotos ─────────────────────────────────
 DIRETORIO_ESTATICO = "static"
