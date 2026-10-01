@@ -8,6 +8,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── MQTT ──────────────────────────────────
+# Endereco e porta do broker: podem ser editados aqui, inclusive pelo editor
+# do GitHub no navegador. Nao sao segredo. Se mudar o endereco, mude tambem
+# em render.yaml (chave MQTT_BROKER) — ver DEPLOY.md.
 BROKER    = os.getenv("MQTT_BROKER", "47d5de0ce14d4654a95021e273720719.s1.eu.hivemq.cloud")
 PORT      = int(os.getenv("MQTT_PORT", "8883"))
 
