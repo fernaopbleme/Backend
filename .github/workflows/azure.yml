@@ -24,6 +24,7 @@ on:
     branches:
       - main
       - para_teste_e_apresentacao
+      - apresentacao
   workflow_dispatch:
 
 env:
