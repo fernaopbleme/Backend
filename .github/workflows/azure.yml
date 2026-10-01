@@ -1,0 +1,73 @@
+# Publica o backend no Azure App Service (Linux, Python 3.11).
+#
+# Substitui o main_backend-tower.yml, que apontava para o app "backend-tower"
+# da subscricao antiga e usava tres secrets (CLIENTID/TENANTID/SUBSCRIPTIONID)
+# que morreram com ela — falhava em todo push.
+#
+# Para ligar:
+#   1. trocar AZURE_WEBAPP_NAME abaixo pelo nome do app criado na Azure
+#   2. no App Service: Deployment Center > Manage publish profile > Download
+#   3. no GitHub: Settings > Secrets and variables > Actions > New secret
+#      nome AZURE_WEBAPP_PUBLISH_PROFILE, conteudo = o arquivo inteiro
+#
+# Sem o secret o deploy e ignorado e o workflow passa, em vez de falhar em
+# vermelho a cada push enquanto a configuracao nao esta pronta.
+#
+# As variaveis de ambiente (MQTT_USER, MQTT_PASS, DATABASE_URL) NAO vem
+# daqui: ficam em Configuration > Application settings, no proprio
+# App Service. Credencial em arquivo de workflow vai para o git.
+
+name: Deploy do backend no Azure
+
+on:
+  push:
+    branches:
+      - main
+      - para_teste_e_apresentacao
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: aerotower-backend
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # Pega requirements.txt quebrado aqui, em 30s, em vez de descobrir
+      # pelo log do App Service depois de um deploy que subiu pela metade.
+      - name: As dependencias instalam?
+        run: pip install -r requirements.txt
+
+      - name: O segredo do Azure esta configurado?
+        id: cfg
+        env:
+          PERFIL: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        run: |
+          if [ -z "$PERFIL" ]; then
+            echo "pronto=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Sem AZURE_WEBAPP_PUBLISH_PROFILE — deploy ignorado. Veja o cabecalho de .github/workflows/azure.yml"
+          else
+            echo "pronto=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # O Oryx instala o requirements.txt na plataforma, por isso nao
+      # mandamos venv nenhum. Depende do app setting
+      # SCM_DO_BUILD_DURING_DEPLOYMENT=true.
+      - name: Deploy
+        if: steps.cfg.outputs.pronto == 'true'
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: .

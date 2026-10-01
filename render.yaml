@@ -1,0 +1,58 @@
+# Publica o backend no Render (plano gratuito).
+#
+# Como usar:
+#   1. render.com > New > Blueprint
+#   2. aponte para o repositorio fernaopbleme/Backend
+#   3. o Render le este arquivo e cria o servico + o banco sozinho
+#   4. preencha MQTT_USER e MQTT_PASS quando ele perguntar
+#
+# ATENCAO ao plano gratuito: o servico DORME depois de ~15 min sem acesso.
+# O primeiro pedido depois disso demora ~50s para responder, e enquanto
+# dorme o MQTT fica desconectado (nenhuma leitura de sensor e guardada).
+# Antes de apresentar, abra a URL do backend uma vez para acorda-lo.
+
+services:
+  - type: web
+    name: aerotower-backend
+    runtime: python
+    plan: free
+    region: oregon
+
+    buildCommand: pip install -r requirements.txt
+
+    # O Render define $PORT e espera que a aplicacao escute nele.
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+
+    healthCheckPath: /
+
+    envVars:
+      # A URL vem do banco criado abaixo. Chega como "postgres://", e o
+      # app/core/config.py converte para "postgresql://" — o SQLAlchemy 2
+      # nao aceita mais o esquema antigo.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aerotower-db
+          property: connectionString
+
+      # sync: false = o Render pergunta o valor na hora de criar, e ele
+      # nao fica escrito neste arquivo (que vai para o git).
+      - key: MQTT_USER
+        sync: false
+      - key: MQTT_PASS
+        sync: false
+
+      - key: MQTT_BROKER
+        value: 47d5de0ce14d4654a95021e273720719.s1.eu.hivemq.cloud
+      - key: MQTT_PORT
+        value: "8883"
+      - key: MQTT_TOPIC_SENSORES
+        value: hidroponia/sensores
+
+      - key: PYTHON_VERSION
+        value: "3.11"
+
+databases:
+  - name: aerotower-db
+    plan: free
+    databaseName: aerotower
+    user: aerotower
