@@ -27,11 +27,13 @@ TOPIC_MOTOR_COMANDO = os.getenv("MQTT_TOPIC_MOTOR_COMANDO", "hidroponia/motor/co
 TOPIC_MOTOR_STATUS  = os.getenv("MQTT_TOPIC_MOTOR_STATUS", "hidroponia/motor/status")
 
 # ── Banco de dados ────────────────────────
-_url = os.getenv("DATABASE_URL", "sqlite:///./plantas.db")
+# Em Azure o valor deve vir via variavel de ambiente do App Service.
+# Fallback apenas para desenvolvedor local.
+_url = os.getenv("DATABASE_URL") or "postgresql://postgres:postgres@localhost:5432/hidroponia"
+_url = _url.strip()
 
-# O Render (e o Heroku) entregam a URL do Postgres comecando com
-# "postgres://", esquema que o SQLAlchemy 2.x nao reconhece mais. Sem esta
-# troca a aplicacao nem sobe, com um erro que nao diz o que fazer.
+# O Render/Heroku entregam a URL do Postgres comecando com "postgres://",
+# esquema que o SQLAlchemy 2.x nao reconhece mais.
 if _url.startswith("postgres://"):
     _url = _url.replace("postgres://", "postgresql://", 1)
 
