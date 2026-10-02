@@ -15,7 +15,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from database import PlantaDB, get_db, Base, engine
-
+from influx import write_sensor_reading
 # ── Configuração MQTT ─────────────────────
 BROKER    = "47d5de0ce14d4654a95021e273720719.s1.eu.hivemq.cloud"
 PORT      = 8883
@@ -138,6 +138,11 @@ def on_message(client, userdata, msg):
             }
             ultimos_alertas = alertas
             print(f"📩 Sensores: {dados}")
+
+            try:
+                write_sensor_reading(dados)
+            except Exception as e:
+                print(f"Erro ao gravar no InfluxDB : {e}")
             if event_loop is not None:
                 asyncio.run_coroutine_threadsafe(
                     enviar_para_flutter(ultimo_dado), event_loop
